@@ -1,5 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
+const publicKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+if (!publicKey)
+  throw new Error(
+    "Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or legacy anon key).",
+  );
 if (
   process.env.NODE_ENV === "production" ||
   process.env.ALLOW_DEMO_SEED !== "true"
@@ -8,7 +15,6 @@ if (
 for (const key of [
   "NEXT_PUBLIC_SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "DEMO_STUDENT_A_EMAIL",
   "DEMO_STUDENT_B_EMAIL",
   "DEMO_STAFF_EMAIL",
@@ -132,11 +138,9 @@ function dummyPdf(title) {
     `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
   return Buffer.from(pdf);
 }
-const staff = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  { auth: { persistSession: false } },
-);
+const staff = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, publicKey, {
+  auth: { persistSession: false },
+});
 check(
   await staff.auth.signInWithPassword({
     email: process.env.DEMO_STAFF_EMAIL,

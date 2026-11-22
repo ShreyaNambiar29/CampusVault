@@ -1,12 +1,19 @@
 import { test, expect } from "@playwright/test";
+import { loadEnvConfig } from "@next/env";
+loadEnvConfig(process.cwd());
+const backendConfigured = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+);
 test("login and preview remain explicitly separate", async ({ page }) => {
   await page.goto("/login");
   await expect(
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Secure sign in" }),
-  ).toBeDisabled();
+  const signIn = page.getByRole("button", { name: "Secure sign in" });
+  if (backendConfigured) await expect(signIn).toBeEnabled();
+  else await expect(signIn).toBeDisabled();
   await page.getByRole("link", { name: "Student preview" }).click();
   await expect(
     page.getByRole("heading", { name: /Welcome back, Nirdesh/ }),
@@ -91,11 +98,13 @@ test("obsolete student upload route and Staff review route are removed", async (
 }) => {
   for (const route of ["/preview/student/upload", "/preview/staff/review"]) {
     await page.goto(route);
-    await expect(page.getByRole("heading",{name:"A little off campus."})).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "A little off campus." }),
+    ).toBeVisible();
     await expect(page.locator("input[type=file]")).toHaveCount(0);
   }
 });
-test("private routes redirect and APIs fail closed without backend", async ({
+test("private routes redirect and APIs require an authenticated session", async ({
   page,
   request,
 }) => {
@@ -104,11 +113,11 @@ test("private routes redirect and APIs fail closed without backend", async ({
   await page.goto("/staff/issue");
   await expect(page).toHaveURL(/\/login$/);
   const exportResponse = await request.get("/api/exports?kind=documents");
-  expect(exportResponse.status()).toBe(503);
+  expect(exportResponse.status()).toBe(backendConfigured ? 401 : 503);
   const access = await request.get(
     "/api/documents/11111111-1111-4111-8111-111111111111/access?kind=preview",
   );
-  expect(access.status()).toBe(503);
+  expect(access.status()).toBe(backendConfigured ? 401 : 503);
   const mutation = await request.post("/api/profile", {
     data: { role: "staff" },
   });

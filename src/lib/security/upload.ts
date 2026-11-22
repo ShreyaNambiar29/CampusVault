@@ -25,5 +25,3 @@ export const completeSchema = uploadSchema.extend({
   name: z.string().min(1).max(255),
   type: z.enum(["application/pdf", "image/jpeg", "image/png"]),
 });
-export const uploadPath = (owner: string, id: string, type: string) =>
-  `issued/${owner}/${id}/${id}.${type === "application/pdf" ? "pdf" : type === "image/png" ? "png" : "jpg"}`;

@@ -133,7 +133,11 @@ export function Dashboard({
   base: string;
 }) {
   const staff = data.profile.role === "staff";
-  const docs = data.documents;
+  const docs = [...data.documents].sort(
+    (a, b) =>
+      new Date(staff ? b.created_at : b.issued_at || b.created_at).getTime() -
+      new Date(staff ? a.created_at : a.issued_at || a.created_at).getTime(),
+  );
   const total = docs.length;
   const issued = docs.filter((d) => d.status === "issued").length;
   const drafts = docs.filter((d) => d.status === "draft").length;
@@ -246,7 +250,7 @@ export function Dashboard({
           <span className="hero-tag">
             <span className="live-dot" />
             {staff
-              ? "YOUR REVIEW WORKSPACE"
+              ? "YOUR ISSUANCE WORKSPACE"
               : "SAFE. ORGANIZED. ALWAYS ACCESSIBLE."}
           </span>
           <h2>
@@ -374,7 +378,7 @@ export function Dashboard({
                     : "Official university documents issued to you."}
                 </p>
               </div>
-              <Link href={`${base}/${"documents"}`}>
+              <Link href={`${base}/documents`}>
                 View all
                 <ArrowRight size={14} />
               </Link>
@@ -385,7 +389,7 @@ export function Dashboard({
                   <tr>
                     <th>DOCUMENT NAME</th>
                     <th>STATUS</th>
-                    <th>ISSUED / CREATED</th>
+                    <th>{staff ? "CREATED" : "ISSUED ON"}</th>
                     <th aria-label="Actions" />
                   </tr>
                 </thead>

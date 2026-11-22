@@ -16,11 +16,11 @@ Open http://localhost:3000. Without Supabase credentials, sign-in stays disabled
 
 Runtime configuration:
 
-| Variable                      | Purpose                                             |
-| ----------------------------- | --------------------------------------------------- |
-| NEXT_PUBLIC_SUPABASE_URL      | Supabase project URL                                |
-| NEXT_PUBLIC_SUPABASE_ANON_KEY | Public anon key; all access still requires Auth/RLS |
-| NEXT_PUBLIC_APP_URL           | App origin, locally http://localhost:3000           |
+| Variable                             | Purpose                                                    |
+| ------------------------------------ | ---------------------------------------------------------- |
+| NEXT_PUBLIC_SUPABASE_URL             | Supabase project URL                                       |
+| NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | Public publishable key; all access still requires Auth/RLS |
+| NEXT_PUBLIC_APP_URL                  | App origin, locally http://localhost:3000                  |
 
 Development seed only: SUPABASE_SERVICE_ROLE_KEY, ALLOW_DEMO_SEED=true, DEMO_STUDENT_A_EMAIL, DEMO_STUDENT_B_EMAIL, DEMO_STAFF_EMAIL, DEMO_PASSWORD (12+ characters). Never expose privileged keys to browser code or commit .env.local. The running app uses no service-role client.
 
@@ -76,7 +76,7 @@ npm start
 
 `test:db` creates an isolated local database, populates 001, checks the old behavior, upgrades to 002 and asserts record preservation plus new RLS/functions/storage policies. Auth/Storage schemas are mocked in PostgreSQL; this is not a hosted Supabase test. Changes and temporary roles are rolled back and the database is dropped. It connects via /tmp, never to a cloud PGHOST.
 
-Browser tests target the unconfigured local environment and verify preview UI/navigation, issuance assignment, inventory filtering, reason validation, removed routes, fail-closed APIs and responsive overflow. For actual cloud checks, run `npm run test:live` in the dedicated seeded project. It checks real authentication, private Storage, Student upload denial, issued-only visibility, scoped issuance, lifecycle concurrency, audit integrity and exports; tagged evidence remains in that project. No live cloud tests can be claimed without credentials.
+Browser tests support configured and unconfigured local environments without signing in and verify preview UI/navigation, issuance assignment, inventory filtering, reason validation, removed routes, fail-closed APIs and responsive overflow. For actual cloud checks, run `npm run test:live` in the dedicated seeded project. It checks real authentication, private Storage, Student upload denial, issued-only visibility, scoped issuance, lifecycle concurrency, audit integrity and exports; tagged evidence remains in that project. No live cloud tests can be claimed without credentials.
 
 ## Export, backup and deployment
 
@@ -91,3 +91,5 @@ Next.js App Router, TypeScript, Tailwind, existing Radix/shadcn-style components
 Workspace datasets and exports currently load authorized records into memory. Large deployments should use server pagination/aggregates, export snapshots/jobs, malware scanning and retention management. File signatures do not constitute malware scanning. Signed access URLs expire after 60 seconds; already downloaded bytes cannot be revoked. Supabase signed upload tokens last two hours and are bound to one non-overwritable object; abandoned files need operator cleanup after expiry. Failed logins are in Supabase Auth logs; the app does not forge audit identities. Legacy scope/bucket/table names remain for compatibility. Issuer IDs are stored; legacy review columns remain historical, not an active workflow.
 
 The campus illustration is original artwork, not a university photograph or official logo. Existing visual branding and fonts are preserved. [SECURITY.md](docs/SECURITY.md) and [DATABASE.md](docs/DATABASE.md) describe the authorization model.
+
+The public configuration also accepts NEXT_PUBLIC_SUPABASE_ANON_KEY for legacy projects. Prefer the publishable key; never use a secret/service-role key in either public variable. Session cookies refresh through Next.js 16 `src/proxy.ts`, which calls `auth.getUser()` after creating the SSR client. Browser and server helpers live in `src/lib/supabase/`.

@@ -1,6 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+const publicKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+if (!publicKey)
+  throw new Error(
+    "Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or legacy anon key).",
+  );
 if (
   process.env.NODE_ENV === "production" ||
   process.env.ALLOW_DEMO_SEED !== "true"
@@ -10,7 +17,6 @@ if (
   );
 for (const key of [
   "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
   "DEMO_STUDENT_A_EMAIL",
   "DEMO_STUDENT_B_EMAIL",
@@ -23,9 +29,9 @@ const client = (key) =>
     auth: { persistSession: false, autoRefreshToken: false },
   });
 const admin = client(process.env.SUPABASE_SERVICE_ROLE_KEY),
-  a = client(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-  b = client(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-  staff = client(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  a = client(publicKey),
+  b = client(publicKey),
+  staff = client(publicKey);
 const checked = (r) => {
   if (r.error) throw r.error;
   return r.data;
@@ -40,9 +46,7 @@ const login = async (db, email) =>
 const ua = await login(a, process.env.DEMO_STUDENT_A_EMAIL);
 await login(b, process.env.DEMO_STUDENT_B_EMAIL);
 await login(staff, process.env.DEMO_STAFF_EMAIL);
-const invalid = await client(
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-).auth.signInWithPassword({
+const invalid = await client(publicKey).auth.signInWithPassword({
   email: process.env.DEMO_STUDENT_A_EMAIL,
   password: randomUUID(),
 });
@@ -143,14 +147,12 @@ assert.ok(
 );
 assert.ok(
   (
-    await a
-      .from("activity_logs")
-      .insert({
-        actor_id: ua.id,
-        action: "forged",
-        resource_type: "document",
-        result: "success",
-      })
+    await a.from("activity_logs").insert({
+      actor_id: ua.id,
+      action: "forged",
+      resource_type: "document",
+      result: "success",
+    })
   ).error,
 );
 assert.ok((await a.rpc("record_export", { export_kind: "documents" })).error);
@@ -238,20 +240,18 @@ const otherScope = checked(
 ).id;
 const otherId = randomUUID();
 checked(
-  await admin
-    .from("documents")
-    .insert({
-      id: otherId,
-      owner_id: ua.id,
-      scope_id: otherScope,
-      title: "[SECURITY TEST] Other scope draft",
-      category: "Other",
-      original_filename: "out-of-scope.pdf",
-      storage_path: `security-test-no-object/${otherId}`,
-      mime_type: "application/pdf",
-      file_size: 1,
-      status: "draft",
-    }),
+  await admin.from("documents").insert({
+    id: otherId,
+    owner_id: ua.id,
+    scope_id: otherScope,
+    title: "[SECURITY TEST] Other scope draft",
+    category: "Other",
+    original_filename: "out-of-scope.pdf",
+    storage_path: `security-test-no-object/${otherId}`,
+    mime_type: "application/pdf",
+    file_size: 1,
+    status: "draft",
+  }),
 );
 assert.equal(
   checked(await staff.from("documents").select("id").eq("id", otherId)).length,
